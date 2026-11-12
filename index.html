@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prédisposition au surpoids — prototype de modèle prédictif</title>
+<style>
+:root{--bg:#f6f8fc;--card:#fff;--tx:#1b2538;--mut:#5b6679;--pri:#1F3864;--acc:#C00000;--bd:#d5dcea;--ok:#2e7d32;--mid:#b26a00;--hi:#C00000;--soft:#e8eef9;
+color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1624;--card:#18223a;--tx:#e8edf7;--mut:#9aa6bd;--pri:#9db7ea;--acc:#ff7a7a;--bd:#2c3a58;--ok:#7bd58a;--mid:#f0b45a;--hi:#ff7a7a;--soft:#22304f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1624;--card:#18223a;--tx:#e8edf7;--mut:#9aa6bd;--pri:#9db7ea;--acc:#ff7a7a;--bd:#2c3a58;--ok:#7bd58a;--mid:#f0b45a;--hi:#ff7a7a;--soft:#22304f;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+main{max-width:860px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:1.55rem;color:var(--pri);margin:.2rem 0}h2{font-size:1.15rem;color:var(--pri);margin:0 0 .6rem}
+.sub{color:var(--mut);margin:0 0 1rem}.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin:14px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+label{display:block;font-size:.88rem;font-weight:600;margin-bottom:4px}select,input{width:100%;padding:9px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit}
+button{background:var(--pri);color:var(--bg);border:0;border-radius:8px;padding:11px 22px;font:inherit;font-weight:700;cursor:pointer;margin-top:14px}
+#res{display:none}.big{font-size:2.6rem;font-weight:800;line-height:1}.band{display:inline-block;padding:3px 12px;border-radius:99px;font-weight:700;color:#fff}
+.bar{height:12px;background:var(--soft);border-radius:99px;overflow:hidden;margin:10px 0}.bar i{display:block;height:100%;border-radius:99px}
+ul{margin:.3rem 0;padding-left:1.2rem}.up{color:var(--hi)}.dn{color:var(--ok)}.note{font-size:.88rem;color:var(--mut)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.stats div{background:var(--soft);border-radius:10px;padding:10px;text-align:center}.stats b{display:block;font-size:1.4rem;color:var(--pri)}
+</style></head><body><main>
+<h1>Prédisposition au surpoids</h1>
+<p class="sub">Prototype de modèle prédictif — réalisé par Vidal Franck YMELONG G.M. (biostatisticien). Outil pédagogique, pas un avis médical.</p>
+<div class="card"><h2>Votre profil</h2><form id="f" onsubmit="return false"><div class="grid" id="fields"></div><button id="go">Estimer le risque</button></form></div>
+<div class="card" id="res" aria-live="polite"><h2>Résultat</h2><div class="big" id="p"></div><span class="band" id="b"></span>
+<div class="bar"><i id="bar"></i></div><p id="msg"></p><div class="grid"><div><b>Facteurs qui augmentent le risque</b><ul id="up"></ul></div><div><b>Facteurs qui le diminuent</b><ul id="dn"></ul></div></div>
+<p class="note">Le risque est la probabilité d’appartenir à la catégorie « surpoids ou obésité » (IMC ≥ 25) d’après les habitudes déclarées, comparée aux personnes du jeu de données.</p></div>
+<div class="card"><h2>Performance réelle du modèle</h2><div class="stats"><div><b id="s1"></b>lignes d’entraînement</div><div><b id="s2"></b>précision (validation croisée)</div><div><b id="s3"></b>AUC (0,5 = hasard)</div><div><b id="s4"></b>précision d’un modèle qui répond toujours « non »</div></div>
+<p class="note">Un modèle modeste mais honnête : il fait mieux que le hasard, sans être un outil de diagnostic. Calibration observée en validation croisée : parmi les profils estimés à moins de 30 %, 20 % étaient en surpoids ; entre 30 et 60 %, 43 % ; au-dessus de 60 %, 72 %.</p></div>
+<div class="card"><h2>Méthode et limites</h2><ul>
+<li><b>Données :</b> « Estimation of Obesity Levels Based on Eating Habits and Physical Condition » (UCI Machine Learning Repository, licence CC BY 4.0) : 2 111 personnes du Mexique, du Pérou et de la Colombie.</li>
+<li><b>Environ 77 % des lignes sont synthétiques</b> (générées par SMOTE). Pour éviter des résultats gonflés, le modèle est entraîné et évalué uniquement sur les 515 lignes qui semblent issues du questionnaire réel (valeurs entières).</li>
+<li><b>Taille et poids volontairement exclus :</b> les catégories du jeu de données sont définies par l’IMC (poids / taille²). Les inclure donnerait une précision proche de 100 % sans aucun intérêt prédictif. Le modèle n’utilise que les habitudes de vie.</li>
+<li><b>Modèle :</b> régression logistique régularisée, choisie car aussi performante que des modèles plus complexes sur ces données, et lisible. Le calcul s’exécute dans votre navigateur ; aucune donnée n’est envoyée.</li>
+<li><b>Limites :</b> échantillon jeune (âge médian 21 ans, entre 14 et 61 ans), enquête en ligne dans trois pays, habitudes déclarées. Les résultats ne se généralisent pas à d’autres populations, par exemple au Cameroun, sans validation.</li></ul></div>
+</main>
+<script>
+const M={"intercept": -0.45116340812579103, "cat": {"Gender": {"Female": -0.2641673076669268, "Male": 0.2640545090931093}, "family_history_with_overweight": {"no": -0.23242999869058775, "yes": 0.23231720011676976}, "FAVC": {"no": 0.022024262309713348, "yes": -0.022137060883530537}, "CAEC": {"Always": -0.15738682402028004, "Frequently": -0.221463466108954, "Sometimes": 0.1820475564130506, "no": 0.19668993514236602}, "SMOKE": {"no": -0.1595641053967248, "yes": 0.15945130682290715}, "SCC": {"no": -0.04441816645649898, "yes": 0.044305367882681294}, "CALC": {"Always": -0.05389397818410915, "Frequently": 0.25625867340589803, "Sometimes": -0.09513842779182613, "no": -0.1073390660037807}, "MTRANS": {"Automobile": 0.15270792187630636, "Bike": -0.006026291825806922, "Motorbike": 0.014341745847819247, "Public_Transportation": -0.10441500768362906, "Walking": -0.05672116678850618}}, "num": {"Age": {"mean": 23.06407766990291, "scale": 6.620486802987412, "coef": 0.5479676452501702}, "FCVC": {"mean": 2.32621359223301, "scale": 0.5865749134898625, "coef": -0.17438729158723945}, "NCP": {"mean": 2.615533980582524, "scale": 0.9490677369048373, "coef": -0.33742501761164395}, "CH2O": {"mean": 1.9398058252427184, "scale": 0.6899190617824142, "coef": 0.34086056974265677}, "FAF": {"mean": 1.1533980582524272, "scale": 1.0133876220961004, "coef": -0.29314094839379706}, "TUE": {"mean": 0.6388349514563106, "scale": 0.7197940657096465, "coef": -0.05810031841094622}}, "meancontrib": {"Gender": 0.02712394662404454, "family_history_with_overweight": 0.04010136837702771, "FAVC": -0.009274539565109988, "CAEC": 0.038304543645209056, "SMOKE": -0.13974178852094182, "SCC": -0.034942837546489434, "CALC": -0.06864173170028919, "MTRANS": -0.04502156606297679, "Age": 1.103755706035107e-16, "FCVC": 4.095968440364655e-17, "NCP": -3.276774752291724e-17, "CH2O": 1.3796946325438838e-17, "FAF": 2.198888320616815e-17, "TUE": -4.311545726699637e-18}, "stats": {"n": 515, "auc_cv": 0.74, "acc_cv": 0.72, "baseline": 0.635, "age_min": 14, "age_max": 61}};
+const F=[["Gender","Genre","c",[["Female","Femme"],["Male","Homme"]]],["Age","Âge (14 à 61 ans)","n"],
+["family_history_with_overweight","Antécédents familiaux de surpoids","c",[["yes","Oui"],["no","Non"]]],
+["FAVC","Aliments très caloriques fréquents","c",[["yes","Oui"],["no","Non"]]],
+["FCVC","Légumes dans vos repas","n",[[1,"Jamais"],[2,"Parfois"],[3,"Toujours"]]],
+["NCP","Repas principaux par jour","n",[[1,"1 à 2"],[3,"3"],[4,"Plus de 3"]]],
+["CAEC","Grignotage entre les repas","c",[["no","Jamais"],["Sometimes","Parfois"],["Frequently","Souvent"],["Always","Toujours"]]],
+["SMOKE","Fumeur","c",[["no","Non"],["yes","Oui"]]],
+["CH2O","Eau par jour","n",[[1,"Moins de 1 L"],[2,"1 à 2 L"],[3,"Plus de 2 L"]]],
+["SCC","Suivi des calories consommées","c",[["no","Non"],["yes","Oui"]]],
+["FAF","Activité physique par semaine","n",[[0,"Aucune"],[1,"1 à 2 jours"],[2,"2 à 4 jours"],[3,"4 à 5 jours"]]],
+["TUE","Temps passé sur écrans par jour","n",[[0,"0 à 2 h"],[1,"3 à 5 h"],[2,"Plus de 5 h"]]],
+["CALC","Consommation d’alcool","c",[["no","Jamais"],["Sometimes","Parfois"],["Frequently","Souvent"]]],
+["MTRANS","Transport habituel","c",[["Public_Transportation","Transports en commun"],["Automobile","Voiture"],["Walking","Marche"],["Motorbike","Moto"],["Bike","Vélo"]]]];
+const D={Gender:"Female",Age:22,family_history_with_overweight:"yes",FAVC:"yes",FCVC:2,NCP:3,CAEC:"Sometimes",SMOKE:"no",CH2O:2,SCC:"no",FAF:1,TUE:1,CALC:"Sometimes",MTRANS:"Public_Transportation"};
+const box=document.getElementById("fields");
+F.forEach(([k,l,t,o])=>{const d=document.createElement("div");let h=`<label for="${k}">${l}</label>`;
+if(k==="Age")h+=`<input id="Age" type="number" min="14" max="61" value="22">`;else{h+=`<select id="${k}">`+o.map(([v,x])=>`<option value="${v}"${String(v)===String(D[k])?" selected":""}>${x}</option>`).join("")+`</select>`}
+d.innerHTML=h;box.appendChild(d)});
+const LBL=Object.fromEntries(F.map(f=>[f[0],f[1]]));
+function calc(v){let z=M.intercept;const part={};
+for(const[k,,t]of F){let c;if(t==="c")c=M.cat[k][v[k]]||0;else{const n=M.num[k];c=(v[k]-n.mean)/n.scale*n.coef}part[k]=c-M.meancontrib[k];z+=c}
+return{p:1/(1+Math.exp(-z)),part}}
+function fmt(k,v){const f=F.find(x=>x[0]===k);if(k==="Age")return v+" ans";const o=f[3].find(x=>String(x[0])===String(v));return o?o[1]:v}
+document.getElementById("go").onclick=()=>{const v={};for(const[k,,t]of F){let x=document.getElementById(k).value;if(k==="Age"){x=Math.min(61,Math.max(14,parseFloat(x)||22));document.getElementById(k).value=x}v[k]=(t==="n")?parseFloat(x):x}
+const r=calc(v),pc=Math.round(r.p*100);document.getElementById("res").style.display="block";
+document.getElementById("p").textContent=pc+" %";
+const lv=pc<30?["Risque faible","var(--ok)","Votre profil ressemble plus à celui de personnes de poids normal ou insuffisant."]:pc<60?["Risque modéré","var(--mid)","Votre profil est mixte : certaines habitudes jouent dans un sens, d’autres dans l’autre."]:["Risque élevé","var(--hi)","Votre profil ressemble plus à celui de personnes en surpoids ou obèses."];
+const b=document.getElementById("b");b.textContent=lv[0];b.style.background=lv[1];const bar=document.getElementById("bar");bar.style.width=pc+"%";bar.style.background=lv[1];
+document.getElementById("msg").textContent=lv[2]+" Ceci n’est pas un diagnostic : pour un avis de santé, consultez un professionnel.";
+const s=Object.entries(r.part).sort((a,b)=>b[1]-a[1]);
+const li=(a,c)=>a.length?a.map(([k,x])=>`<li class="${c}">${LBL[k]} : ${fmt(k,v[k])}</li>`).join(""):"<li>Aucun facteur marquant</li>";
+document.getElementById("up").innerHTML=li(s.filter(x=>x[1]>0.05).slice(0,3),"up");document.getElementById("dn").innerHTML=li(s.filter(x=>x[1]<-0.05).slice(-3).reverse(),"dn");
+document.getElementById("res").scrollIntoView({behavior:"smooth",block:"nearest"})};
+document.getElementById("s1").textContent=M.stats.n;document.getElementById("s2").textContent=Math.round(M.stats.acc_cv*100)+" %";document.getElementById("s3").textContent=M.stats.auc_cv.toFixed(2).replace(".",",");document.getElementById("s4").textContent=Math.round(M.stats.baseline*100)+" %";
+</script></body></html>
